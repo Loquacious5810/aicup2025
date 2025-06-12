@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.metrics import roc_auc_score
+from xgboost import XGBClassifier
 
 def FFT(xreal, ximag):    
     n = 2
@@ -318,9 +319,19 @@ def load_models_and_encoders(model_dir='saved_models'):
 def train_and_save_model(X, y, name, save_dir="saved_models"):
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
-    model = RandomForestClassifier(random_state=42).fit(X, y_encoded)
+
+    model = XGBClassifier(
+        use_label_encoder=False,
+        eval_metric='mlogloss',
+        random_state=42,
+        n_estimators=100,
+        max_depth=6
+    )
+    model.fit(X, y_encoded)
+
     joblib.dump(model, os.path.join(save_dir, f"model_{name}.joblib"))
     joblib.dump(le, os.path.join(save_dir, f"le_{name}.joblib"))
+
     return model, le
 
 def main():
@@ -374,6 +385,9 @@ def main():
     label_encoders = {}
     for target in target_mask:
         models[target], label_encoders[target] = train_and_save_model(X_train_scaled, y_train[target], target)
+
+    # 儲存 scaler
+    joblib.dump(scaler, 'saved_models/scaler.pkl')
 
 if __name__ == '__main__':
     main()
